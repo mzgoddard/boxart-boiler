@@ -1,0 +1,152 @@
+* {
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+}
+body {
+	margin: 0;
+	font-family: sans-serif;
+}
+img {
+	max-width: 100%;
+}
+
+.a11y-only{
+	border: 0;
+	clip: rect(0 0 0 0);
+	height: 1px;
+	margin: -1px;
+	overflow: hidden;
+	padding: 0;
+	position: absolute;
+	width: 1px;
+}
+.a11y-only:active,
+.a11y-only:focus {
+	clip: auto;
+	height: auto;
+	margin: 0;
+	overflow: visible;
+	position: static;
+	width: auto;
+}
+
+
+/* Header
+----------------------- */
+.lede {
+	background: #000;
+	box-shadow: 0 0 1px #000; /* This is to hide the seam between the skewed element and the `outline` in Chrome. */
+	float: left;
+	width: 100%;
+	position: relative;
+	margin-bottom: 20%;
+	transform: rotate(-7deg) skewX(-7deg);
+	outline: 1em solid #000;
+	padding: 0 3.5%;
+	padding-top: 10%;
+	margin-top: -10%;
+}
+.lede:after {
+	content: " ";
+	display: table;
+	clear: both;
+}
+
+.art {
+	transform: rotate(7deg) skewX(7deg) translateZ( 0 );
+}
+
+.art img {
+	image-rendering: pixelated;
+	width: 100%;
+}
+
+.title {
+	background: #000;
+	bottom: 0;
+	color: red;
+	position: relative;
+	font-size: 7.5vw;
+	padding-top: 2em;
+	position: relative;
+	float: left;
+	text-transform: uppercase;
+	padding-top: .85em;
+	margin-top: -2em;
+	width: 100%;
+}
+.title-copy {
+	float: left;
+}
+.title:after {
+	content: " ";
+	display: table;
+	clear: both;
+}
+
+.vers {
+	font-size: .55em;
+	font-weight: bold;
+	position: absolute;
+	top: 0;
+}
+.hed {
+	margin: 0;
+	padding: 0;
+	display: block;
+	float: left;
+	text-indent: -.06em;
+}
+@media( min-width: 75em ) {
+	.title {
+		font-size: 5.6203125em;
+	}
+}
+
+.subhed {
+	margin: 0;
+	color: yellow;
+	clear: both;
+	float: right;
+	text-align: center;
+	font-weight: bold;
+	font-size: .5em;
+	margin-top: -.65em;
+	line-height: .9;
+}
+
+/* Docs Body
+----------------------- */
+
+.central {
+	padding: 0 3.5%;
+	max-width: 1000px;
+}
+
+.hed-a {
+	background: papayawhip;
+	padding: .25em 1em .2em 20%;
+	float: left;
+	margin-left: -20%;
+}
+
+p {
+	clear: both;
+	line-height: 1.3;
+	font-size: 1.05em;
+}
+p img {
+	max-height: 2.25em;
+	margin: 0 .5em -.45em .5em;
+}
+ pre {
+ 	overflow: auto;
+    background: #fafafa;
+    font-size: 1em;
+    border: 4px solid #ddd;
+    padding: .7em 1em .85em 1em;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: "monaco", monospace;
+ }
