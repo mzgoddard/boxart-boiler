@@ -1,10 +1,10 @@
 import React from 'react';
 import update from 'react-addons-update';
 
+import {Animated, AnimatedAgent} from 'boxart';
+
 import Component from '../update-ancestor';
 
-import Animated from '../animated';
-import AnimatedAgent from '../animated-agent';
 import Clamp from '../clamp';
 import Batch from '../batch';
 
@@ -357,195 +357,110 @@ class Main extends Component {
   }
 
   appearAnimation(options) {
-    return (options.timer(timer => {
-      // const tRect = options.rect.clone();
-      const start = Date.now();
-      const style = {transform: ''};
-      const replaced = {transform: options.animatedEl.style.transform};
-      return Promise.resolve()
-      // .then(() => timer.frame())
-      .then(() => {
-        timer.cancelable(() => {
-          options.animatedEl.style.transform = replaced.transform;
-          return options.lastRect;
-        });
-        return timer.loop(() => {
-          const t = Math.min((Date.now() - start) / 1000, 1);
-          // tRect.width = options.rect.width * t;
-          // tRect.height = options.rect.height * t;
-          // tRect.angle = 2 * Math.PI * t;
-          const angle = -Math.PI * (t / 2 - 0.5);
-          // style.transform = `translateZ(0) scale(${t}) rotateZ(${angle}rad)`;
-          const c = Math.cos(angle);
-          const s = Math.sin(angle);
-          style.transform = `matrix3d(${t * c}, ${t * s}, 0, 0, ${-t * s}, ${t * c}, 0, 0, 0, 0, ${(1 - c) + c}, 0, 0, 0, 0, 1)`;
-          // console.log(style.transform);
-          // style.transform = tRect.transform(options.rect);
-          // options.setStyle(style);
-          options.animatedEl.style.transform = style.transform;
-          return t;
-        });
-      })
-      .then(() => {options.animatedEl.style.transform = replaced.transform;});
-      // .then(() => options.setStyle());
-    }));
+    const timer = options.timer();
+    const start = Date.now();
+    const style = {transform: ''};
+    options.replaceStyle(style);
+    timer.cancelable(() => options.lastRect);
+    return timer.loop(() => {
+      const t = Math.min((Date.now() - start) / 1000, 1);
+      const angle = -Math.PI * (t / 2 - 0.5);
+      // const c = Math.cos(angle);
+      // const s = Math.sin(angle);
+      // style.transform = `matrix3d(${t * c}, ${t * s}, 0, 0, ${-t * s}, ${t * c}, 0, 0, 0, 0, ${(1 - c) + c}, 0, 0, 0, 0, 1)`;
+      style.transform = `translateZ(0) scale(${t}) rotateZ(${angle}rad)`;
+      options.setStyle(style);
+      return t;
+    })
+    .then(() => options.replaceStyle());
+    return timer;
   }
 
   disappearAnimation(options, tile) {
-    return (options.timer(timer => {
-      // const tRect = options.rect.clone();
-      const start = Date.now();
-      const style = {transform: ''};
-      const replaced = {transform: options.animatedEl.style.transform};
-      return Promise.resolve()
-      // .then(() => timer.frame())
-      .then(() => {
-        timer.cancelable(() => {
-          options.animatedEl.style.transform = replaced.transform;
-          return options.lastRect;
-        });
-        return timer.loop(() => {
-          const t = 1 - Math.min((Date.now() - start) / 1000, 1);
-          // tRect.width = options.rect.width * t;
-          // tRect.height = options.rect.height * t;
-          // tRect.angle = 2 * Math.PI * t;
-          const angle = Math.PI * (t / 2 - 0.5);
-          // style.transform = `translateZ(0) scale(${t}) rotateZ(${angle}rad)`;
-          const c = Math.cos(angle);
-          const s = Math.sin(angle);
-          style.transform = `matrix3d(${t * c}, ${t * s}, 0, 0, ${-t * s}, ${t * c}, 0, 0, 0, 0, ${(1 - c) + c}, 0, 0, 0, 0, 1)`;
-          // console.log(style.transform);
-          // style.transform = tRect.transform(options.rect);
-          // options.setStyle(style);
-          options.animatedEl.style.transform = style.transform;
-          return 1 - t;
-        });
-      })
-      .then(() => {
-        // options.animatedEl.style.transform = replaced.transform;
-        this.cleanTile(tile);
-      });
-      // .then(() => options.setStyle());
-    }));
-  }
-
-  slideAnimation(options) {
-    return (options.timer(timer => {
-      const tRect = options.lastRect.clone();
-      timer.cancelable(() => tRect);
-      return Promise.resolve()
-      // .then(() => timer.frame())
-      .then(() => {
-        const gravity = options._agent.rect.width / 4;
-        const start = Date.now();
-        const {rect, lastRect} = options;
-        const top = rect.top;
-        const lastTop = lastRect.top;
-        const duration = Math.sqrt(Math.abs(rect.left - lastRect.left) / gravity);
-        const style = {
-          transform: '',
-          zIndex: 1,
-        };
-        return timer.loop(() => {
-          const seconds = (Date.now() - start) / 1000;
-          const t = seconds / duration;
-          const t2 = t * t;
-          rect.interpolate(lastRect, t2, tRect);
-          style.transform = tRect.transform(rect);
-          options.setStyle(style);
-          return t2;
-        });
-      })
-      .then(() => options.setStyle());
-    }));
+    const timer = options.timer();
+    const start = Date.now();
+    const style = {transform: ''};
+    options.replaceStyle(style);
+    timer.cancelable(() => options.lastRect);
+    return timer.loop(() => {
+      const t = 1 - Math.min((Date.now() - start) / 1000, 1);
+      const angle = Math.PI * (t / 2 - 0.5);
+      // const c = Math.cos(angle);
+      // const s = Math.sin(angle);
+      // style.transform = `matrix3d(${t * c}, ${t * s}, 0, 0, ${-t * s}, ${t * c}, 0, 0, 0, 0, ${(1 - c) + c}, 0, 0, 0, 0, 1)`;
+      style.transform = `translateZ(0) scale(${t}) rotateZ(${angle}rad)`;
+      options.setStyle(style);
+      return 1 - t;
+    })
+    .then(() => this.cleanTile(tile));
   }
 
   fallAnimation(options) {
-    return (options.timer(timer => {
-      const tRect = options.lastRect.clone();
-      timer.cancelable(() => tRect);
-      // return Promise.resolve()
-      // .then(() => timer.frame())
-      // .then(() => {
-        const gravity = options._agent.rect.width / 4;
-        const start = Date.now();
-        const {rect, lastRect} = options;
-        const top = rect.top;
-        const lastTop = lastRect.top;
-        const duration = Math.sqrt((top - lastTop) / gravity);
-        const style = {
-          transform: lastRect.transform(rect),
-          zIndex: 1,
-        };
-        options.setStyle(style);
-        return timer.loop(() => {
-          const seconds = (Date.now() - start) / 1000;
-          // const y = lastTop + gravity * seconds * seconds;
-          // const t = Math.min(1 - (top - y) / (top - lastTop), 1);
-          const t = Math.min(seconds / duration, 1);
-          let s;
-          if (rect.left === lastRect.left) {
-            s = t;
-          }
-          else {
-            s = Math.min(seconds * 4 / (Math.abs(rect.left - lastRect.left) / rect.width), 1);
-          }
-          rect.interpolate(lastRect, t * t, tRect);
-          tRect.left = (rect.left - lastRect.left) * s + lastRect.left;
-          style.transform = tRect.transform(rect);
-          options.setStyle(style);
-          return t * t * s;
-        })
-        .then(() => options.setStyle());
-      // });
-    }));
+    const timer = options.timer();
+    const tRect = options.lastRect.clone();
+    timer.cancelable(() => tRect);
+    const gravity = options.agent.rect.width / 4;
+    const start = Date.now();
+    const {rect, lastRect} = options;
+    const top = rect.top;
+    const lastTop = lastRect.top;
+    const duration = Math.sqrt((top - lastTop) / gravity);
+    const style = {
+      transform: '',
+      zIndex: 1,
+    };
+    rect.transformStyle(lastRect, style);
+    options.replaceStyle(style);
+    return timer.loop(() => {
+      const seconds = (Date.now() - start) / 1000;
+      const t = Math.min(seconds / duration, 1);
+      let s;
+      if (rect.left === lastRect.left) {
+        s = t;
+      }
+      else {
+        s = Math.min(seconds * 4 / (Math.abs(rect.left - lastRect.left) / rect.width), 1);
+      }
+      lastRect.interpolate(rect, t * t, tRect);
+      tRect.left = (rect.left - lastRect.left) * s + lastRect.left;
+      rect.transformStyle(tRect, style);
+      options.setStyle(style);
+      return t * t * s;
+    })
+    .then(() => options.replaceStyle());
+    return timer;
   }
 
   explodeAnimation(options, tile) {
-    return (options.timer(timer => {
-      const {rect, lastRect} = options;
-      const tRect = lastRect.clone();
-      timer.cancelable(() => tRect);
-      return Promise.resolve()
-      // .then(() => timer.frame())
-      .then(() => {
-        const gravity = options._agent.rect.width / 4;
-        const start = Date.now();
-        const top = rect.top;
-        const lastTop = lastRect.top;
-        const vx = (tile.x - tile.matchX) * gravity / 4 + (Math.random() - 0.5) * gravity / 2;
-        const vy = -(tile.y - tile.matchY) * gravity / 4 - Math.random() * gravity;
-        lastRect.angle = Math.PI * Math.random() * 4;
-        const style = {
-          transform: '',
-          zIndex: 2,
-        };
-        return timer.loop(() => {
-          const seconds = (Date.now() - start) / 1000;
-          const y = lastTop + vy * seconds + gravity * seconds * seconds;
-          const t = Math.min(1 - (top - y) / (top - lastTop), 1);
-          tRect.left = lastRect.left + vx * seconds;
-          tRect.top = y;
-          tRect.width = lastRect.width * (1 - seconds) / 1;
-          tRect.height = lastRect.height * (1 - seconds) / 1;
-          tRect.angle = lastRect.angle * seconds / 1;
-          // rect.interpolate(lastRect, t, tRect);
-          // style.transform = tRect.transform(rect);
-          const theta = rect.angle - tRect.angle;
-          const c = Math.cos(theta);
-          const s = Math.sin(theta);
-          const dx = tRect.left - rect.left;
-          const dy = tRect.top - rect.top;
-          const t2 = (1 - seconds);
-          style.transform = `matrix3d(${t2 * c}, ${t2 * s}, 0, 0, ${-t2 * s}, ${t2 * c}, 0, 0, 0, 0, ${(1 - c) + c}, 0, ${dx}, ${dy}, 0, 1)`;
-          options.setStyle(style);
-          return seconds / 1;
-        });
-      })
-      .then(() => {
-        this.cleanTile(tile);
-      });
-    }));
+    const timer = options.timer();
+    const {rect, lastRect} = options;
+    const tRect = lastRect.clone();
+    timer.cancelable(() => tRect);
+    const gravity = options.agent.rect.width / 4;
+    const start = Date.now();
+    const top = rect.top;
+    const lastTop = lastRect.top;
+    const vx = (tile.x - tile.matchX) * gravity / 4 + (Math.random() - 0.5) * gravity / 2;
+    const vy = -(tile.y - tile.matchY) * gravity / 4 - Math.random() * gravity;
+    lastRect.angle = Math.PI * Math.random() * 4;
+    const style = {
+      transform: '',
+      zIndex: 2,
+    };
+    rect.transformStyle(rect, style);
+    options.replaceStyle(style);
+    return timer.loop(() => {
+      const seconds = (Date.now() - start) / 1000;
+      tRect.left = lastRect.left + vx * seconds;
+      tRect.top = lastTop + vy * seconds + gravity * seconds * seconds;
+      tRect.width = lastRect.width * (1 - seconds) / 1;
+      tRect.height = lastRect.height * (1 - seconds) / 1;
+      tRect.angle = lastRect.angle * seconds / 1;
+      rect.transformStyle(tRect, style);
+      options.setStyle(style);
+      return seconds / 1;
+    })
+    .then(() => this.cleanTile(tile));
   }
 
   animateTile(tile) {
