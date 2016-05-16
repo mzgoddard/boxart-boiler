@@ -82,41 +82,30 @@ class Main extends Component {
     super();
 
     this.state = {
-
+      birdCount: 1,
     };
     this.particles = [];
+    this.many = [1, 2, 4, 8, 16, 32, 64, 128, 256];
   }
 
-  render() { 
+  render() {
+    const birds = [];
+    for (let i = 0; i < this.state.birdCount; i++) {
+      birds.push(0);
+    }
     return (
       <div className="game-board">
         <AnimatedAgent>
-      <div>
-          <Bird />
-          <Bird />
-          <Bird />
-          <Bird />
-          <Bird />
-          <Bird />
-          <Bird />
-          <Bird />
-          <Bird />
-          <Bird />
-          <Bird />
-          <Bird />
-          <Bird />
-          <Bird />
-          <Bird />
-          <Bird />
-          <Bird />
-          <Bird />
-          <Bird />
-          <Bird />
-          <Bird />
-          <Bird />
-          <Bird />
-          <Bird />
-      </div>
+          <div>
+            <div>
+              <select ref="birdCount" defaultValue={this.state.birdCount} onChange={() => {
+                this.setState({birdCount: this.refs.birdCount.value | 0});
+              }}>
+                {this.many.map((n, index) => <option value={n}>{n}</option>)}
+              </select>
+            </div>
+            {birds.map((n, index) => <Bird key={index} />)}
+          </div>
         </AnimatedAgent>
       </div>
     );
