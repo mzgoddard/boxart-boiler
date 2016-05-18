@@ -1,4 +1,5 @@
 import React from 'react';
+import {findDOMNode} from 'react-dom';
 
 import {Animated, AnimatedAgent} from 'boxart';
 
@@ -88,6 +89,10 @@ class Main extends Component {
     this.many = [1, 2, 4, 8, 16, 32, 64, 128, 256];
   }
 
+  emit(particle) {
+    this.refs.particles.emit(particle);
+  }
+
   render() {
     const birds = [];
     for (let i = 0; i < this.state.birdCount; i++) {
@@ -97,14 +102,15 @@ class Main extends Component {
       <div className="game-board">
         <AnimatedAgent>
           <div>
-            <div>
+            <div style={{position: 'relative', zIndex: 1}}>
               <select ref="birdCount" defaultValue={this.state.birdCount} onChange={() => {
                 this.setState({birdCount: this.refs.birdCount.value | 0});
               }}>
                 {this.many.map((n, index) => <option value={n}>{n}</option>)}
               </select>
             </div>
-            {birds.map((n, index) => <Bird key={index} />)}
+            {birds.map((n, index) => <Bird key={index} emit={this.emit} />)}
+            <Particles ref="particles" width="100%" height="100%" max={birds.length * 32} />
           </div>
         </AnimatedAgent>
       </div>
@@ -114,43 +120,214 @@ class Main extends Component {
 
 export default Main;
 
-class Bird extends Component {
+class Particles extends Component {
   emit(particle) {
+    const rect = this.rect;
+    particle.x -= rect.left;
+    particle.y -= rect.top;
     // console.log(particle);
-    this.particles = this.particles || [];
-    this.particles.push(particle);
-    if (this.particles.length > 64) {
-      this.particles.shift();
+
+    // console.log(particle);
+    // this.particleFrame = this.particleFrame || 0;
+    // this.particles = this.particles || [];
+    // this.particlesData = this.particlesData || new Float64Array(11 * 64);
+    // this.nextParticleIndex = this.nextParticleIndex || 0;
+    // this.particleFills = this.particleFills || [];
+    // this.particles[this.nextParticleIndex] = particle;
+    this.particlesData[this.nextParticleIndex * 11 + 0] = Date.now() / 1000;
+    this.particlesData[this.nextParticleIndex * 11 + 1] = particle.x;
+    this.particlesData[this.nextParticleIndex * 11 + 2] = particle.vx;
+    this.particlesData[this.nextParticleIndex * 11 + 3] = particle.y;
+    this.particlesData[this.nextParticleIndex * 11 + 4] = particle.vy;
+    this.particlesData[this.nextParticleIndex * 11 + 5] = particle.drag;
+    this.particlesData[this.nextParticleIndex * 11 + 6] = particle.s;
+    this.particlesData[this.nextParticleIndex * 11 + 7] = particle.vs;
+    this.particlesData[this.nextParticleIndex * 11 + 8] = particle.sdrag;
+    this.particlesData[this.nextParticleIndex * 11 + 9] = particle.o;
+    this.particlesData[this.nextParticleIndex * 11 + 10] = particle.vo;
+    this.nextParticleIndex++;
+    if (this.nextParticleIndex >= this.props.max) {
+      this.nextParticleIndex = 0;
     }
   }
 
+  componentDidMount() {
+    this.rect = findDOMNode(this).getBoundingClientRect();
+  }
+
   animateParticle(options) {
-    const index = options.animated.props.particleIndex;
     const timer = options.timer();
-    let last = Date.now();
     const style = {transform: '', opacity: 0};
-    options.replaceStyle(style);
+    const data = this.particlesData;
+    // options.replaceStyle(style);
     timer.loop(() => {
-      let particle = this.particles[index];
-      if (!particle || particle.o < 1e-5) {
-        style.opacity = 0;
-        options.setStyle(style);
-        return 0;
+      const now = Date.now() / 1000;
+      for (let index = 0; index < this.props.max; index++) {
+        // let particle = this.particles[index];
+        const baseIndex = index * 11;
+        if (data[baseIndex] === 0) {
+        // if (!particle || particle.o < 1e-5) {
+          continue;
+        }
+
+        const t = now - data[baseIndex];
+        const d1 = t + 0.016;
+        const d2 = -t * d1;
+        // const drag = 0.016 * (f + 1) * (1 - particle.drag * 0.016 * f);
+        const drag = data[baseIndex + 5] * d2 + d1;
+        // const x = particle.x + particle.vx * drag;
+        const x = data[baseIndex + 1] + data[baseIndex + 2] * drag;
+        // const y = particle.y + particle.vy * drag;
+        const y = data[baseIndex + 3] + data[baseIndex + 4] * drag;
+        // const o = particle.o + particle.vo * t;
+        const o = data[baseIndex + 9] + data[baseIndex + 10] * t;
+        // const sdrag = 0.016 * (f + 1) * (1 - particle.sdrag * 0.016 * f);
+        const sdrag = data[baseIndex + 8] * d2 + d1;
+        // const s = particle.s + particle.vs * sdrag;
+        const s = data[baseIndex + 6] + data[baseIndex + 7] * sdrag;
+
+        // particle.x += particle.vx * t;
+        // particle.y += particle.vy * t;
+        // particle.o += particle.vo * t;
+        // particle.s += particle.vs * t;
+        // particle.vx *= 1 - (particle.drag * t);
+        // particle.vy *= 1 - (particle.drag * t);
+        // particle.vs *= 1 - (particle.sdrag * t);
+
+        const ref = this.particleRefs[index];
+        ref.style.transform = `translate(${x}px, ${y}px) scale(${s})`;
+        // ref.setAttribute('transform', `translate(${x}, ${y}) scale(${s})`);
+        ref.style.opacity = o < 1e-5 ? 0 : o;
+        if (o < 1e-5) {
+          data[baseIndex] = 0;
+        }
+        // options.setStyle(style);
+        // if (this.particles[index].color !== this.particleFills[index]) {
+        //   ref.setAttribute('fill', this.particles[index].color);
+        //   this.particleFills[index] = this.particles[index].color;
+        // }
       }
-      const t = (Date.now() - last) / 1000;
-      last = Date.now();
-      particle.x += particle.vx * t;
-      particle.y += particle.vy * t;
-      particle.o += particle.vo * t;
-      particle.s += particle.vs * t;
-      particle.vx *= 1 - (particle.drag * t);
-      particle.vy *= 1 - (particle.drag * t);
-      particle.vs *= 1 - (particle.sdrag * t);
-      // console.log(particle);
-      style.transform = `translate(${particle.x}px, ${particle.y}px) scale(${particle.s})`;
-      style.opacity = particle.o < 1e-5 ? 0 : particle.o;
-      options.setStyle(style);
-      options.animatedEl.setAttribute('fill', particle.color);
+      return 0;
+    });
+    return timer;
+  }
+
+  render() {
+    if (!this.particleIndices || this.particleIndices.length !== this.props.max) {
+      this.particleIndices = new Array(this.props.max);
+      // this.particles = new Array(this.props.max);
+      this.particlesData = new Float64Array(11 * this.props.max);
+      this.nextParticleIndex = 0;
+      for (let i = 0; i < this.props.max; i++) {
+        this.particleIndices[i] = i;
+      }
+    }
+    this.particleKey = this.particleKey || Math.random();
+    this.particleRefs = this.particleRefs || [];
+    // console.log(this);
+    return (
+      <svg width={this.props.width} height={this.props.height} style={{transformOrigin: '0 0 0', transform: 'translateZ(0)', position: 'absolute', top: 0, left: 0}}>
+        <Animated animateKey={this.particleKey} animate={this.animateParticle} >
+      <g>
+      {this.particleIndices.map((n, index) => (
+        <image ref={particle => {this.particleRefs[index] = particle;}} x="0" y="0" width="16" height="16" xlinkHref={require('./smoke.png')} style={{opacity: 0}} />
+      ))}
+      </g>
+        </Animated>
+      </svg>
+    );
+  }
+}
+
+class Bird extends Component {
+  emit(particle) {
+    if (this.props.emit) {
+      const rect = this.rect;
+      particle.x += rect.left;
+      particle.y += rect.top;
+      return this.props.emit(particle);
+    }
+    // console.log(particle);
+    this.particleFrame = this.particleFrame || 0;
+    this.particles = this.particles || [];
+    this.particlesData = this.particlesData || new Float64Array(11 * 64);
+    this.nextParticleIndex = this.nextParticleIndex || 0;
+    this.particleFills = this.particleFills || [];
+    this.particles[this.nextParticleIndex] = particle;
+    this.particlesData[this.nextParticleIndex * 11 + 0] = Date.now() / 1000;
+    this.particlesData[this.nextParticleIndex * 11 + 1] = particle.x;
+    this.particlesData[this.nextParticleIndex * 11 + 2] = particle.vx;
+    this.particlesData[this.nextParticleIndex * 11 + 3] = particle.y;
+    this.particlesData[this.nextParticleIndex * 11 + 4] = particle.vy;
+    this.particlesData[this.nextParticleIndex * 11 + 5] = particle.drag;
+    this.particlesData[this.nextParticleIndex * 11 + 6] = particle.s;
+    this.particlesData[this.nextParticleIndex * 11 + 7] = particle.vs;
+    this.particlesData[this.nextParticleIndex * 11 + 8] = particle.sdrag;
+    this.particlesData[this.nextParticleIndex * 11 + 9] = particle.o;
+    this.particlesData[this.nextParticleIndex * 11 + 10] = particle.vo;
+    this.nextParticleIndex++;
+    if (this.nextParticleIndex >= 64) {
+      this.nextParticleIndex = 0;
+    }
+  }
+
+  componentDidMount() {
+    this.rect = findDOMNode(this).getBoundingClientRect();
+  }
+
+  animateParticle(options) {
+    return ;
+    const timer = options.timer();
+    const style = {transform: '', opacity: 0};
+    // options.replaceStyle(style);
+    timer.loop(() => {
+      const now = Date.now() / 1000;
+      const data = this.particlesData;
+      for (let index = 0; index < this.particles.length; index++) {
+        // let particle = this.particles[index];
+        const baseIndex = index * 11;
+        if (data[baseIndex] === 0) {
+        // if (!particle || particle.o < 1e-5) {
+          continue;
+        }
+
+        const t = now - data[baseIndex];
+        const d1 = t + 0.016;
+        const d2 = -t * d1;
+        // const drag = 0.016 * (f + 1) * (1 - particle.drag * 0.016 * f);
+        const drag = data[baseIndex + 5] * d2 + d1;
+        // const x = particle.x + particle.vx * drag;
+        const x = data[baseIndex + 1] + data[baseIndex + 2] * drag;
+        // const y = particle.y + particle.vy * drag;
+        const y = data[baseIndex + 3] + data[baseIndex + 4] * drag;
+        // const o = particle.o + particle.vo * t;
+        const o = data[baseIndex + 9] + data[baseIndex + 10] * t;
+        // const sdrag = 0.016 * (f + 1) * (1 - particle.sdrag * 0.016 * f);
+        const sdrag = data[baseIndex + 8] * d2 + d1;
+        // const s = particle.s + particle.vs * sdrag;
+        const s = data[baseIndex + 6] + data[baseIndex + 7] * sdrag;
+
+        // particle.x += particle.vx * t;
+        // particle.y += particle.vy * t;
+        // particle.o += particle.vo * t;
+        // particle.s += particle.vs * t;
+        // particle.vx *= 1 - (particle.drag * t);
+        // particle.vy *= 1 - (particle.drag * t);
+        // particle.vs *= 1 - (particle.sdrag * t);
+
+        const ref = this.particleRefs[index];
+        ref.style.transform = `translate(${x}px, ${y}px) scale(${s})`;
+        // ref.setAttribute('transform', `translate(${x}, ${y}) scale(${s})`);
+        ref.style.opacity = o < 1e-5 ? 0 : o;
+        if (o < 1e-5) {
+          data[baseIndex] = 0;
+        }
+        // options.setStyle(style);
+        if (this.particles[index].color !== this.particleFills[index]) {
+          ref.setAttribute('fill', this.particles[index].color);
+          this.particleFills[index] = this.particles[index].color;
+        }
+      }
       return 0;
     });
     return timer;
@@ -160,7 +337,13 @@ class Bird extends Component {
     const recipe = animation[options.animated.props.animateNode];
     if (!recipe) {return;}
     const timer = options.timer();
+    let canceled = false;
+    const key = Math.random();
     const loop = () => {
+      if (canceled) {
+        return;
+      }
+      // console.log(key);
       const start = Date.now();
       const style = {};
       const replaced = {};
@@ -175,6 +358,11 @@ class Bird extends Component {
         replaceAttributes[key] = options.animatedEl.getAttribute(key);
       }
       timer.cancelable(() => {
+        if (canceled) {
+          return;
+        }
+        // console.log(key, 'canceled');
+        canceled = true;
         for (const key in recipe.style) {
           options.animatedEl.style[key] = replaced[key];
         }
@@ -183,6 +371,9 @@ class Bird extends Component {
         }
       });
       timer.loop(() => {
+        if (canceled) {
+          return 1;
+        }
         const diff = Date.now() - start;
         // console.log(diff);
         for (const key in recipe.style) {
@@ -217,9 +408,14 @@ class Bird extends Component {
   }
 
   render() {
+    this.neckKey = this.neckKey || Math.random();
+    this.beardKey = this.beardKey || Math.random();
+    this.headKey = this.headKey || Math.random();
+    this.particleKey = this.particleKey || Math.random();
+    this.particleRefs = this.particleRefs || [];
 return (
   <div style={{display: "inline-block", position: "relative", width: 165, height: 249}}>
-  <Animated animateKey={Math.random()} animateNode="neck1" animate={this.animate}>
+  <Animated animateKey={this.neckKey} animateNode="neck1" animate={this.animate}>
   <svg width="165" height="249" style={{transformOrigin: '0 0 0', transform: 'translateZ(0)', position: 'absolute',}}>
   <defs>
     <pattern id="robo" patternUnits="userSpaceOnUse" width="165" height="249">
@@ -243,7 +439,7 @@ return (
     <polygon points="116,115 151,125 73,245 44,205 55,203 56,185 68,176 85,171" fill="url(#robo)"></polygon>
   </g>
   </svg>
-  <Animated animateKey={Math.random()} animateNode="beard" animate={this.animate}>
+  <Animated animateKey={this.beardKey} animateNode="beard" animate={this.animate}>
   <svg width="165" height="249" style={{transformOrigin: '0 0 0', transform: 'translateZ(0)', position: 'absolute',}}>
   <defs>
     <pattern id="robo" patternUnits="userSpaceOnUse" width="165" height="249">
@@ -258,7 +454,7 @@ return (
   </g>
   </svg>
   </Animated>
-  <Animated animateKey={Math.random()} animateNode="head" animate={this.animate}>
+  <Animated animateKey={this.headKey} animateNode="head" animate={this.animate}>
   <svg width="162" height="116" style={{transformOrigin: '0 0 0', transform: 'translateZ(0)', position: 'absolute',}}>
   <defs>
     <pattern id="robo" patternUnits="userSpaceOnUse" width="165" height="249">
@@ -278,6 +474,7 @@ return (
   </svg>
   </Animated>
   <svg width="165" height="249" style={{transformOrigin: '0 0 0', transform: 'translateZ(0)', position: 'absolute',}}>
+    <Animated animateKey={this.particleKey} animate={this.animateParticle} >
   <g>
   {[
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5,
@@ -285,11 +482,10 @@ return (
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5,
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5,
   ].map((n, index) => (
-    <Animated animateKey={Math.random()} animate={this.animateParticle} particleIndex={index}>
-      <image x="0" y="0" width="16" height="16" xlinkHref={require('./smoke.png')} />
-    </Animated>
+      <image ref={particle => {this.particleRefs[index] = particle;}} x="0" y="0" width="16" height="16" xlinkHref={require('./smoke.png')} style={{opacity: 0}} />
   ))}
   </g>
+    </Animated>
   </svg>
   </div>);
 }
